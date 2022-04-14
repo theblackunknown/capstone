@@ -38,95 +38,125 @@
       }
     },
     {
-      "name": "linux-x64",
+      "name": "linux-x64-shared",
       "inherits": [ "ninja", "x64", "locations-base", "warnings-base" ],
-      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"}
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"},
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "ON"
+      }
     },
     {
-      "name": "macos-x64",
+      "name": "linux-x64-static",
       "inherits": [ "ninja", "x64", "locations-base", "warnings-base" ],
-      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"}
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"},
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "OFF"
+      }
     },
     {
-      "name": "windows-x64",
+      "name": "macos-x64-shared",
       "inherits": [ "ninja", "x64", "locations-base", "warnings-base" ],
-      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"}
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"},
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "ON"
+      }
+    },
+    {
+      "name": "macos-x64-static",
+      "inherits": [ "ninja", "x64", "locations-base", "warnings-base" ],
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"},
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "OFF"
+      }
+    },
+    {
+      "name": "windows-x64-shared",
+      "inherits": [ "ninja", "x64", "locations-base", "warnings-base" ],
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"},
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "ON"
+      }
+    },
+    {
+      "name": "windows-x64-static",
+      "inherits": [ "ninja", "x64", "locations-base", "warnings-base" ],
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"},
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "OFF"
+      }
     }
   ],
   "buildPresets": [
     {
-      "name": "build-linux",
-      "configurePreset": "linux-x64",
+      "name": "build-linux-x64-shared",
+      "configurePreset": "linux-x64-shared",
       "nativeToolOptions": [ "-v" ],
       "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"}
     },
     {
-      "name": "build-macos",
-      "configurePreset": "macos-x64",
+      "name": "build-macos-x64-shared",
+      "configurePreset": "macos-x64-shared",
       "nativeToolOptions": [ "-v" ],
       "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"}
     },
     {
-      "name": "build-windows",
-      "configurePreset": "windows-x64",
+      "name": "build-windows-x64-shared",
+      "configurePreset": "windows-x64-shared",
       "nativeToolOptions": [ "-v" ],
       "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"}
     },
     {
-      "name": "build-linux-release",
-      "inherits": "build-linux",
-      "configuration": "Release",
-      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"}
-    },
-    {
-      "name": "build-macos-release",
-      "inherits": "build-macos",
-      "configuration": "Release",
-      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"}
-    },
-    {
-      "name": "build-windows-release",
-      "inherits": "build-windows",
-      "configuration": "Release",
-      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"}
-    },
-    {
-      "name": "install-linux",
-      "configurePreset": "linux-x64",
-      "inherits": "build-linux",
+      "name": "install-linux-x64-shared",
+      "inherits": "build-linux-x64-shared",
       "targets": [ "install" ],
       "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"}
     },
     {
-      "name": "install-macos",
-      "configurePreset": "macos-x64",
-      "inherits": "build-macos",
+      "name": "install-macos-x64-shared",
+      "inherits": "build-macos-x64-shared",
       "targets": [ "install" ],
       "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"}
     },
     {
-      "name": "install-windows",
-      "configurePreset": "windows-x64",
-      "inherits": "build-windows",
+      "name": "install-windows-x64-shared",
+      "inherits": "build-windows-x64-shared",
       "targets": [ "install" ],
       "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"}
     },
     {
-      "name": "install-linux-release",
-      "inherits": "install-linux",
-      "configuration": "Release",
+      "name": "build-linux-x64-static",
+      "configurePreset": "linux-x64-static",
+      "nativeToolOptions": [ "-v" ],
       "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"}
     },
     {
-      "name": "install-macos-release",
-      "inherits": "install-macos",
-      "configuration": "Release",
+      "name": "build-macos-x64-static",
+      "configurePreset": "macos-x64-static",
+      "nativeToolOptions": [ "-v" ],
       "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"}
     },
     {
-      "name": "install-windows-release",
-      "inherits": "install-windows",
-      "configuration": "Release",
+      "name": "build-windows-x64-static",
+      "configurePreset": "windows-x64-static",
+      "nativeToolOptions": [ "-v" ],
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"}
+    },
+    {
+      "name": "install-linux-x64-static",
+      "inherits": "build-linux-x64-static",
+      "targets": [ "install" ],
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"}
+    },
+    {
+      "name": "install-macos-x64-static",
+      "inherits": "build-macos-x64-static",
+      "targets": [ "install" ],
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"}
+    },
+    {
+      "name": "install-windows-x64-static",
+      "inherits": "build-windows-x64-static",
+      "targets": [ "install" ],
       "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"}
     }
   ]

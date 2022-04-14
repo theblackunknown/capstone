@@ -22,56 +22,76 @@ env:
   CI: true
 
 jobs:
-  Linux:
+  build:
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {
-              name: 'ubuntu-18.04 x64 python2.7 make',
-              os: ubuntu-18.04,
-              arch: x64,
-              python-arch: x64,
-              python-version: '2.7',
-              build-system: 'make',
-            }
-          - {
-              name: 'ubuntu-18.04 x64 python3.6 make',
-              os: ubuntu-18.04,
-              arch: x64,
-              python-arch: x64,
-              python-version: '3.6',
-              build-system: 'make',
-            }
-          - {
-              name: 'ubuntu-20.04 x64 python2.7 make',
-              os: ubuntu-20.04,
-              arch: x64,
-              python-arch: x64,
-              python-version: '2.7',
-              build-system: 'make',
-            }
-          - {
-              name: 'ubuntu-20.04 x64 python3.9 make',
-              os: ubuntu-20.04,
-              arch: x64,
-              python-arch: x64,
-              python-version: '3.9',
-              build-system: 'make',
-            }            
-          - {
-              name: 'ubuntu-20.04 x64 python3.9 cmake',
-              os: ubuntu-20.04,
-              arch: x64,
-              python-arch: x64,
-              python-version: '3.9',
-              build-system: 'cmake',
-            }
+          - name: 'ubuntu-18.04 x64 python2.7 make'
+            os: ubuntu-18.04
+            arch: x64
+            platform: linux
+            python-arch: x64
+            python-version: '2.7'
+            build-system: 'make'
+          - name: 'ubuntu-18.04 x64 python3.6 make'
+            os: ubuntu-18.04
+            arch: x64
+            platform: linux
+            python-arch: x64
+            python-version: '3.6'
+            build-system: 'make'
+          - name: 'ubuntu-20.04 x64 python2.7 make'
+            os: ubuntu-20.04
+            arch: x64
+            platform: linux
+            python-arch: x64
+            python-version: '2.7'
+            build-system: 'make'
+          - name: 'ubuntu-20.04 x64 python3.9 make'
+            os: ubuntu-20.04
+            arch: x64
+            platform: linux
+            python-arch: x64
+            python-version: '3.9'
+            build-system: 'make'
+          - name: 'ubuntu-20.04 x64 python3.9 cmake (shared library)'
+            os: ubuntu-20.04
+            arch: x64
+            platform: linux
+            python-arch: x64
+            python-version: '3.9'
+            build-system: 'cmake'
+            linkage-flavor: 'shared'
+          - name: 'ubuntu-20.04 x64 python3.9 cmake (static library)'
+            os: ubuntu-20.04
+            arch: x64
+            platform: linux
+            python-arch: x64
+            python-version: '3.9'
+            build-system: 'cmake'
+            linkage-flavor: 'static'
+          - name: 'windows x64 python3.9 cmake (shared library)'
+            os: windows-latest
+            arch: x64
+            platform: windows
+            python-arch: x64
+            python-version: '3.9'
+            build-system: 'cmake'
+            linkage-flavor: 'shared'
+          - name: 'windows x64 python3.9 cmake (static library)'
+            os: windows-latest
+            arch: x64
+            platform: windows
+            python-arch: x64
+            python-version: '3.9'
+            build-system: 'cmake'
+            linkage-flavor: 'static'
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -79,6 +99,7 @@ jobs:
         python-version: ${{ matrix.config.python-version }}
 
     - name: prepare
+      if: (matrix.config.platform == 'linux')
       shell: 'script -q -e -c "bash {0}"'
       run: |
         export LD_LIBRARY_PATH=`pwd`/tests/:$LD_LIBRARY_PATH
@@ -95,60 +116,54 @@ jobs:
         make check
         sudo make install
 
-    - name: cmake
-      if: startsWith(matrix.config.build-system, 'cmake')
-      shell: 'script -q -e -c "bash {0}"'
-      run: |
-        mkdir build
-        cd build
-        cmake -DCAPSTONE_INSTALL=1 ..
-        cmake --build . --config Release
-        sudo make install
+    - uses: lukka/get-cmake@latest
+      if: (matrix.config.build-system == 'cmake')
+      name: Get CMake
 
-    - name: build python binding
+    - name: '🛠️ Win MSVC 64 setup'
+      if: (matrix.config.arch == 'x64') && (matrix.config.platform == 'windows')
+      uses: ilammy/msvc-dev-cmd@v1  
+      with:
+        arch: 'x64'
+
+    - name: cmake
+      if: (matrix.config.build-system == 'cmake')
+      shell: bash
+      run: |
+        cmake --version
+        cmake --preset=${{ matrix.config.platform }}-x64-${{ matrix.config.linkage-flavor }}
+        cmake --build --preset build-${{ matrix.config.platform }}-x64-${{ matrix.config.linkage-flavor }} --config Release
+        cmake --build --preset install-${{ matrix.config.platform }}-x64-${{ matrix.config.linkage-flavor }} --config Release
+
+    - name: build python binding (Make)
+      if: (matrix.config.build-system != 'cmake') && (matrix.config.platform == 'linux')
       shell: 'script -q -e -c "bash {0}"'
       run: |
         cp libcapstone.so.* bindings/python/libcapstone.so
         cd bindings/python && make check; cd ../..;
 
+    - name: build python binding (CMake/UNIX)
+      if: (matrix.config.build-system == 'cmake') && (matrix.config.linkage-flavor == 'shared') && (matrix.config.platform == 'linux')
+      shell: bash
+      continue-on-error: true
+      run: |
+        cp out/install/${{ matrix.config.platform }}-x64-${{ matrix.config.linkage-flavor }}/lib/libcapstone.so* bindings/python/
+        ls -al bindings/python/
+        cd bindings/python && make check; cd ../..;
+
+    - name: build python binding (CMake/Windows)
+      if: (matrix.config.build-system == 'cmake') && (matrix.config.linkage-flavor == 'shared') && (matrix.config.platform == 'windows')
+      shell: bash
+      continue-on-error: true
+      run: |
+        cp out/install/${{ matrix.config.platform }}-x64-${{ matrix.config.linkage-flavor }}/bin/capstone.dll bindings/python/
+        ls -al bindings/python/
+        cd bindings/python && make check; cd ../..;
+
     - name: cstest
+      if: (matrix.config.platform == 'linux')
       shell: 'script -q -e -c "bash {0}"'
       run: |
         cd suite/cstest && ./build_cstest.sh;
         python cstest_report.py -D -t build/cstest -d ../MC;
         python cstest_report.py -D -t build/cstest -f issues.cs; cd ..;
-
-  Windows:
-    runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - name: 'windows x64 MSVC 64bit'
-            os: windows-latest
-            arch: x64
-            platform: windows
-            python-arch: x64
-            python-version: '3.9'
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - uses: lukka/get-cmake@latest
-      name: Get CMake
-
-    - name: '🛠️ Win MSVC 64 setup'
-      if: contains(matrix.config.name, 'MSVC 64')
-      uses: ilammy/msvc-dev-cmd@v1  
-      with:
-        arch: 'x64'
-
-    - name: '🚧 Win MSVC 64 build'
-      if: contains(matrix.config.name, 'MSVC 64')
-      shell: bash
-      run: |
-        cmake --version
-        cmake --preset=${{ matrix.config.platform }}-x64
-        cmake --build --preset build-${{ matrix.config.platform }}-release
-        cmake --build --preset install-${{ matrix.config.platform }}-release
